@@ -39,7 +39,7 @@ export default {
             // 临时测试响应（不调用OpenAI API）
             if (userMessage.toLowerCase().includes('test') || userMessage.toLowerCase().includes('测试')) {
               return new Response(JSON.stringify({
-                message: `✅ 测试成功！收到您的消息: "${userMessage}". Worker和前端连接正常，CORS配置有效。现在需要配置OpenAI API密钥。`
+                message: `✅ 测试成功！收到您的消息: "${userMessage}". Worker和前端连接正常，CORS配置有效。现在使用gpt-4o-mini模型。`
               }), {
                 status: 200,
                 headers: {
@@ -52,7 +52,7 @@ export default {
             // 转换为GraphQL格式处理
             const simpleVariables = {
               messages: [{ role: "user", content: userMessage }],
-              model: "gpt-3.5-turbo",
+              model: "gpt-4o-mini",
               maxTokens: 1024,
               temperature: 0.7
             };
@@ -165,7 +165,7 @@ export default {
 
       // 从 variables 或查询中提取参数
       const messages = variables?.messages || [];
-      const model = variables?.model || 'gpt-3.5-turbo';
+      const model = variables?.model || 'gpt-4o-mini';
       const maxTokens = variables?.maxTokens || 1024;
       const temperature = variables?.temperature || 0.7;
   
