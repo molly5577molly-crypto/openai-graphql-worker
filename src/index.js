@@ -1,15 +1,19 @@
 // Cloudflare Worker - OpenAI API with GraphQL
 export default {
     async fetch(request, env, ctx) {
+      // 通用 CORS 头部
+      const corsHeaders = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+        'Access-Control-Max-Age': '86400', // 24小时缓存预检请求
+      };
+
       // 处理 CORS 预检请求
       if (request.method === 'OPTIONS') {
         return new Response(null, {
           status: 200,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-          },
+          headers: corsHeaders,
         });
       }
   
@@ -17,9 +21,7 @@ export default {
       if (request.method !== 'POST') {
         return new Response('Method not allowed', { 
           status: 405,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-          }
+          headers: corsHeaders,
         });
       }
   
@@ -33,10 +35,24 @@ export default {
           // 检查是否是简单的聊天请求格式
           if (requestBody.prompt || requestBody.message || requestBody.input) {
             const userMessage = requestBody.prompt || requestBody.message || requestBody.input;
+            
+            // 临时测试响应（不调用OpenAI API）
+            if (userMessage.toLowerCase().includes('test') || userMessage.toLowerCase().includes('测试')) {
+              return new Response(JSON.stringify({
+                message: `✅ 测试成功！收到您的消息: "${userMessage}". Worker和前端连接正常，CORS配置有效。现在需要配置OpenAI API密钥。`
+              }), {
+                status: 200,
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...corsHeaders,
+                }
+              });
+            }
+            
             // 转换为GraphQL格式处理
             const simpleVariables = {
               messages: [{ role: "user", content: userMessage }],
-              model: "gpt-3.5-turbo",
+              model: "gpt-4o-mini",
               maxTokens: 1024,
               temperature: 0.7
             };
@@ -50,7 +66,7 @@ export default {
                 status: 200,
                 headers: {
                   'Content-Type': 'application/json',
-                  'Access-Control-Allow-Origin': '*',
+                  ...corsHeaders,
                 }
               });
             } else if (result.errors) {
@@ -60,7 +76,7 @@ export default {
                 status: 500,
                 headers: {
                   'Content-Type': 'application/json',
-                  'Access-Control-Allow-Origin': '*',
+                  ...corsHeaders,
                 }
               });
             }
@@ -74,7 +90,7 @@ export default {
               status: 400,
               headers: {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
+                ...corsHeaders,
               }
             }
           );
@@ -87,7 +103,7 @@ export default {
           status: 200,
           headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
+            ...corsHeaders,
           }
         });
   
@@ -101,7 +117,7 @@ export default {
             status: 500,
             headers: {
               'Content-Type': 'application/json',
-              'Access-Control-Allow-Origin': '*',
+              ...corsHeaders,
             }
           }
         );
@@ -131,14 +147,25 @@ export default {
     try {
       // 检查API密钥
       if (!env.OPENAI_API_KEY) {
+        console.error('OPENAI_API_KEY environment variable is not set');
         return {
           errors: [{ message: 'OpenAI API key not configured' }]
         };
       }
 
+      // 检查API密钥格式
+      if (!env.OPENAI_API_KEY.startsWith('sk-')) {
+        console.error('Invalid OpenAI API key format:', env.OPENAI_API_KEY.substring(0, 10) + '...');
+        return {
+          errors: [{ message: 'Invalid OpenAI API key format' }]
+        };
+      }
+
+      console.log('API Key configured, length:', env.OPENAI_API_KEY.length);
+
       // 从 variables 或查询中提取参数
       const messages = variables?.messages || [];
-      const model = variables?.model || 'gpt-3.5-turbo';
+      const model = variables?.model || 'gpt-4o-mini';
       const maxTokens = variables?.maxTokens || 1024;
       const temperature = variables?.temperature || 0.7;
   
@@ -148,6 +175,17 @@ export default {
         };
       }
   
+      // 构建请求体
+      const requestBody = {
+        model: model,
+        messages: messages,
+        max_tokens: maxTokens,
+        temperature: temperature,
+        stream: false,
+      };
+
+      console.log('Calling OpenAI API with:', JSON.stringify(requestBody, null, 2));
+
       // 调用 OpenAI API
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -155,21 +193,21 @@ export default {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
         },
-        body: JSON.stringify({
-          model: model,
-          messages: messages,
-          max_tokens: maxTokens,
-          temperature: temperature,
-          stream: false,
-        }),
+        body: JSON.stringify(requestBody),
       });
   
+      console.log('OpenAI API response status:', response.status);
+      console.log('OpenAI API response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
         const errorData = await response.text();
+        console.error('OpenAI API error response:', errorData);
         throw new Error(`OpenAI API error: ${response.status} - ${errorData}`);
       }
   
       const data = await response.json();
+      
+      console.log('OpenAI API 完整响应:', JSON.stringify(data, null, 2));
   
       // 返回 GraphQL 格式的响应
       return {
@@ -186,9 +224,9 @@ export default {
               index: choice.index,
             })),
             usage: {
-              promptTokens: data.usage.prompt_tokens,
-              completionTokens: data.usage.completion_tokens,
-              totalTokens: data.usage.total_tokens,
+              promptTokens: data.usage?.prompt_tokens || 0,
+              completionTokens: data.usage?.completion_tokens || 0,
+              totalTokens: data.usage?.total_tokens || 0,
             },
             created: data.created,
           }
