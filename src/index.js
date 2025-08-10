@@ -1,15 +1,19 @@
 // Cloudflare Worker - OpenAI API with GraphQL
 export default {
     async fetch(request, env, ctx) {
+      // 通用 CORS 头部
+      const corsHeaders = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+        'Access-Control-Max-Age': '86400', // 24小时缓存预检请求
+      };
+
       // 处理 CORS 预检请求
       if (request.method === 'OPTIONS') {
         return new Response(null, {
           status: 200,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-          },
+          headers: corsHeaders,
         });
       }
   
@@ -17,9 +21,7 @@ export default {
       if (request.method !== 'POST') {
         return new Response('Method not allowed', { 
           status: 405,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-          }
+          headers: corsHeaders,
         });
       }
   
@@ -50,7 +52,7 @@ export default {
                 status: 200,
                 headers: {
                   'Content-Type': 'application/json',
-                  'Access-Control-Allow-Origin': '*',
+                  ...corsHeaders,
                 }
               });
             } else if (result.errors) {
@@ -60,7 +62,7 @@ export default {
                 status: 500,
                 headers: {
                   'Content-Type': 'application/json',
-                  'Access-Control-Allow-Origin': '*',
+                  ...corsHeaders,
                 }
               });
             }
@@ -74,7 +76,7 @@ export default {
               status: 400,
               headers: {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
+                ...corsHeaders,
               }
             }
           );
@@ -87,7 +89,7 @@ export default {
           status: 200,
           headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
+            ...corsHeaders,
           }
         });
   
@@ -101,7 +103,7 @@ export default {
             status: 500,
             headers: {
               'Content-Type': 'application/json',
-              'Access-Control-Allow-Origin': '*',
+              ...corsHeaders,
             }
           }
         );
