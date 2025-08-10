@@ -133,10 +133,21 @@ export default {
     try {
       // 检查API密钥
       if (!env.OPENAI_API_KEY) {
+        console.error('OPENAI_API_KEY environment variable is not set');
         return {
           errors: [{ message: 'OpenAI API key not configured' }]
         };
       }
+
+      // 检查API密钥格式
+      if (!env.OPENAI_API_KEY.startsWith('sk-')) {
+        console.error('Invalid OpenAI API key format:', env.OPENAI_API_KEY.substring(0, 10) + '...');
+        return {
+          errors: [{ message: 'Invalid OpenAI API key format' }]
+        };
+      }
+
+      console.log('API Key configured, length:', env.OPENAI_API_KEY.length);
 
       // 从 variables 或查询中提取参数
       const messages = variables?.messages || [];
@@ -150,6 +161,17 @@ export default {
         };
       }
   
+      // 构建请求体
+      const requestBody = {
+        model: model,
+        messages: messages,
+        max_tokens: maxTokens,
+        temperature: temperature,
+        stream: false,
+      };
+
+      console.log('Calling OpenAI API with:', JSON.stringify(requestBody, null, 2));
+
       // 调用 OpenAI API
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -157,17 +179,15 @@ export default {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
         },
-        body: JSON.stringify({
-          model: model,
-          messages: messages,
-          max_tokens: maxTokens,
-          temperature: temperature,
-          stream: false,
-        }),
+        body: JSON.stringify(requestBody),
       });
   
+      console.log('OpenAI API response status:', response.status);
+      console.log('OpenAI API response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
         const errorData = await response.text();
+        console.error('OpenAI API error response:', errorData);
         throw new Error(`OpenAI API error: ${response.status} - ${errorData}`);
       }
   
