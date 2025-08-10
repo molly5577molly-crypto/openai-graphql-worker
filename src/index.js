@@ -14,7 +14,6 @@ export default {
         return new Response(null, {
           status: 200,
           headers: corsHeaders,
-          headers: corsHeaders,
         });
       }
   
@@ -22,7 +21,6 @@ export default {
       if (request.method !== 'POST') {
         return new Response('Method not allowed', { 
           status: 405,
-          headers: corsHeaders,
           headers: corsHeaders,
         });
       }
@@ -54,7 +52,6 @@ export default {
             // 转换为GraphQL格式处理
             const simpleVariables = {
               messages: [{ role: "user", content: userMessage }],
-              model: "gpt-4o-mini",
               model: "gpt-4o-mini",
               maxTokens: 1024,
               temperature: 0.7
@@ -185,7 +182,6 @@ export default {
       // 从 variables 或查询中提取参数
       const messages = variables?.messages || [];
       const model = variables?.model || 'gpt-4o-mini';
-      const model = variables?.model || 'gpt-4o-mini';
       const maxTokens = variables?.maxTokens || 1024;
       const temperature = variables?.temperature || 0.7;
   
@@ -206,17 +202,6 @@ export default {
 
       console.log('Calling OpenAI API with:', JSON.stringify(requestBody, null, 2));
 
-  
-      // 构建请求体
-      const requestBody = {
-        model: model,
-        messages: messages,
-        max_tokens: maxTokens,
-        temperature: temperature,
-        stream: false,
-      };
-
-      console.log('Calling OpenAI API with:', JSON.stringify(requestBody, null, 2));
 
       // 调用 OpenAI API
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -231,11 +216,6 @@ export default {
       console.log('OpenAI API response status:', response.status);
       console.log('OpenAI API response headers:', Object.fromEntries(response.headers.entries()));
 
-        body: JSON.stringify(requestBody),
-      });
-  
-      console.log('OpenAI API response status:', response.status);
-      console.log('OpenAI API response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorData = await response.text();
@@ -265,9 +245,6 @@ export default {
               index: choice.index,
             })),
             usage: {
-              promptTokens: data.usage?.prompt_tokens || 0,
-              completionTokens: data.usage?.completion_tokens || 0,
-              totalTokens: data.usage?.total_tokens || 0,
               promptTokens: data.usage?.prompt_tokens || 0,
               completionTokens: data.usage?.completion_tokens || 0,
               totalTokens: data.usage?.total_tokens || 0,
