@@ -206,6 +206,8 @@ export default {
       }
   
       const data = await response.json();
+      
+      console.log('OpenAI API 完整响应:', JSON.stringify(data, null, 2));
   
       // 返回 GraphQL 格式的响应
       return {
@@ -222,9 +224,9 @@ export default {
               index: choice.index,
             })),
             usage: {
-              promptTokens: data.usage.prompt_tokens,
-              completionTokens: data.usage.completion_tokens,
-              totalTokens: data.usage.total_tokens,
+              promptTokens: data.usage?.prompt_tokens || 0,
+              completionTokens: data.usage?.completion_tokens || 0,
+              totalTokens: data.usage?.total_tokens || 0,
             },
             created: data.created,
           }
