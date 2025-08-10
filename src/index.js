@@ -35,6 +35,20 @@ export default {
           // 检查是否是简单的聊天请求格式
           if (requestBody.prompt || requestBody.message || requestBody.input) {
             const userMessage = requestBody.prompt || requestBody.message || requestBody.input;
+            
+            // 临时测试响应（不调用OpenAI API）
+            if (userMessage.toLowerCase().includes('test') || userMessage.toLowerCase().includes('测试')) {
+              return new Response(JSON.stringify({
+                message: `✅ 测试成功！收到您的消息: "${userMessage}". Worker和前端连接正常，CORS配置有效。现在需要配置OpenAI API密钥。`
+              }), {
+                status: 200,
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...corsHeaders,
+                }
+              });
+            }
+            
             // 转换为GraphQL格式处理
             const simpleVariables = {
               messages: [{ role: "user", content: userMessage }],
