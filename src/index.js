@@ -9,10 +9,19 @@ export default {
         'Access-Control-Max-Age': '86400', // 24小时缓存预检请求
       };
 
+      // 通用 CORS 头部
+      const corsHeaders = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+        'Access-Control-Max-Age': '86400', // 24小时缓存预检请求
+      };
+
       // 处理 CORS 预检请求
       if (request.method === 'OPTIONS') {
         return new Response(null, {
           status: 200,
+          headers: corsHeaders,
           headers: corsHeaders,
         });
       }
@@ -21,6 +30,7 @@ export default {
       if (request.method !== 'POST') {
         return new Response('Method not allowed', { 
           status: 405,
+          headers: corsHeaders,
           headers: corsHeaders,
         });
       }
@@ -53,6 +63,7 @@ export default {
             const simpleVariables = {
               messages: [{ role: "user", content: userMessage }],
               model: "gpt-4o-mini",
+              model: "gpt-4o-mini",
               maxTokens: 1024,
               temperature: 0.7
             };
@@ -67,6 +78,7 @@ export default {
                 headers: {
                   'Content-Type': 'application/json',
                   ...corsHeaders,
+                  ...corsHeaders,
                 }
               });
             } else if (result.errors) {
@@ -76,6 +88,7 @@ export default {
                 status: 500,
                 headers: {
                   'Content-Type': 'application/json',
+                  ...corsHeaders,
                   ...corsHeaders,
                 }
               });
@@ -91,6 +104,7 @@ export default {
               headers: {
                 'Content-Type': 'application/json',
                 ...corsHeaders,
+                ...corsHeaders,
               }
             }
           );
@@ -103,6 +117,7 @@ export default {
           status: 200,
           headers: {
             'Content-Type': 'application/json',
+            ...corsHeaders,
             ...corsHeaders,
           }
         });
@@ -117,6 +132,7 @@ export default {
             status: 500,
             headers: {
               'Content-Type': 'application/json',
+              ...corsHeaders,
               ...corsHeaders,
             }
           }
@@ -148,6 +164,7 @@ export default {
       // 检查API密钥
       if (!env.OPENAI_API_KEY) {
         console.error('OPENAI_API_KEY environment variable is not set');
+        console.error('OPENAI_API_KEY environment variable is not set');
         return {
           errors: [{ message: 'OpenAI API key not configured' }]
         };
@@ -163,8 +180,19 @@ export default {
 
       console.log('API Key configured, length:', env.OPENAI_API_KEY.length);
 
+      // 检查API密钥格式
+      if (!env.OPENAI_API_KEY.startsWith('sk-')) {
+        console.error('Invalid OpenAI API key format:', env.OPENAI_API_KEY.substring(0, 10) + '...');
+        return {
+          errors: [{ message: 'Invalid OpenAI API key format' }]
+        };
+      }
+
+      console.log('API Key configured, length:', env.OPENAI_API_KEY.length);
+
       // 从 variables 或查询中提取参数
       const messages = variables?.messages || [];
+      const model = variables?.model || 'gpt-4o-mini';
       const model = variables?.model || 'gpt-4o-mini';
       const maxTokens = variables?.maxTokens || 1024;
       const temperature = variables?.temperature || 0.7;
@@ -174,6 +202,18 @@ export default {
           errors: [{ message: 'Messages are required for chat query' }]
         };
       }
+  
+      // 构建请求体
+      const requestBody = {
+        model: model,
+        messages: messages,
+        max_tokens: maxTokens,
+        temperature: temperature,
+        stream: false,
+      };
+
+      console.log('Calling OpenAI API with:', JSON.stringify(requestBody, null, 2));
+
   
       // 构建请求体
       const requestBody = {
@@ -199,13 +239,22 @@ export default {
       console.log('OpenAI API response status:', response.status);
       console.log('OpenAI API response headers:', Object.fromEntries(response.headers.entries()));
 
+        body: JSON.stringify(requestBody),
+      });
+  
+      console.log('OpenAI API response status:', response.status);
+      console.log('OpenAI API response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
         const errorData = await response.text();
+        console.error('OpenAI API error response:', errorData);
         console.error('OpenAI API error response:', errorData);
         throw new Error(`OpenAI API error: ${response.status} - ${errorData}`);
       }
   
       const data = await response.json();
+      
+      console.log('OpenAI API 完整响应:', JSON.stringify(data, null, 2));
       
       console.log('OpenAI API 完整响应:', JSON.stringify(data, null, 2));
   
@@ -224,6 +273,9 @@ export default {
               index: choice.index,
             })),
             usage: {
+              promptTokens: data.usage?.prompt_tokens || 0,
+              completionTokens: data.usage?.completion_tokens || 0,
+              totalTokens: data.usage?.total_tokens || 0,
               promptTokens: data.usage?.prompt_tokens || 0,
               completionTokens: data.usage?.completion_tokens || 0,
               totalTokens: data.usage?.total_tokens || 0,
