@@ -9,14 +9,6 @@ export default {
         'Access-Control-Max-Age': '86400', // 24小时缓存预检请求
       };
 
-      // 通用 CORS 头部
-      const corsHeaders = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-        'Access-Control-Max-Age': '86400', // 24小时缓存预检请求
-      };
-
       // 处理 CORS 预检请求
       if (request.method === 'OPTIONS') {
         return new Response(null, {
