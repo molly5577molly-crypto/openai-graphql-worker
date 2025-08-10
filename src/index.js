@@ -25,12 +25,50 @@ export default {
   
       try {
         // 解析请求体
-        const { query, variables, operationName } = await request.json();
+        const requestBody = await request.json();
+        const { query, variables, operationName } = requestBody;
   
+        // 如果没有GraphQL查询，可能是简单的聊天请求
         if (!query) {
+          // 检查是否是简单的聊天请求格式
+          if (requestBody.prompt || requestBody.message || requestBody.input) {
+            const userMessage = requestBody.prompt || requestBody.message || requestBody.input;
+            // 转换为GraphQL格式处理
+            const simpleVariables = {
+              messages: [{ role: "user", content: userMessage }],
+              model: "gpt-3.5-turbo",
+              maxTokens: 1024,
+              temperature: 0.7
+            };
+            const result = await handleChatQuery('', simpleVariables, env);
+            
+            // 如果是简单请求，返回简化格式
+            if (result.data?.chat?.choices?.[0]?.message?.content) {
+              return new Response(JSON.stringify({
+                message: result.data.chat.choices[0].message.content
+              }), {
+                status: 200,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Access-Control-Allow-Origin': '*',
+                }
+              });
+            } else if (result.errors) {
+              return new Response(JSON.stringify({
+                error: result.errors.map(e => e.message).join(', ')
+              }), {
+                status: 500,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Access-Control-Allow-Origin': '*',
+                }
+              });
+            }
+          }
+          
           return new Response(
             JSON.stringify({ 
-              errors: [{ message: 'GraphQL query is required' }] 
+              errors: [{ message: 'GraphQL query or simple message is required' }] 
             }),
             {
               status: 400,
