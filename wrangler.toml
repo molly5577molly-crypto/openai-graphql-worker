@@ -1,4 +1,4 @@
-name = "openai-graphql-worker"
+name = "ai-chat-woker"
 main = "src/index.js"
 compatibility_date = "2024-01-15"
 
